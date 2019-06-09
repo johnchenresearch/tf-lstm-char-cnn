@@ -39,7 +39,7 @@ flags.DEFINE_float  ('max_grad_norm',       5.0,  'normalize gradients at')
 flags.DEFINE_integer('max_word_length',     65,   'maximum word length')
 
 # bookkeeping
-flags.DEFINE_integer('seed',           3435, 'random number generator seed')
+flags.DEFINE_integer('seed',           np.random.randint(1,4000), 'random number generator seed')
 flags.DEFINE_integer('print_every',    5,    'how often to print current loss')
 flags.DEFINE_string ('EOS',            '+',  '<EOS> symbol. should be a single unused character (like +) for PTB and blank for others')
 
@@ -85,6 +85,10 @@ def main(_):
     test_reader = DataReader(word_tensors['test'], char_tensors['test'],
                               FLAGS.batch_size, FLAGS.num_unroll_steps)
 
+    train_loss = []
+    train_perplexity = []
+    test_loss = []
+    test_perplexity = []
     print('initialized all dataset readers')
 
     with tf.Graph().as_default(), tf.Session() as session:
@@ -217,6 +221,11 @@ def main(_):
             print("train loss = %6.8f, perplexity = %6.8f" % (avg_train_loss, np.exp(avg_train_loss)))
             print("validation loss = %6.8f, perplexity = %6.8f" % (avg_valid_loss, np.exp(avg_valid_loss)))
 
+            train_loss.append(avg_train_loss)
+            train_perplexity.append(np.exp(avg_train_loss))
+            test_loss.append(avg_valid_loss)
+            test_perplexity.append(np.exp(avg_valid_loss))
+            
             save_as = '%s/epoch%03d_%.4f.model' % (FLAGS.train_dir, epoch, avg_valid_loss)
             saver.save(session, save_as)
             print('Saved model', save_as)
@@ -242,7 +251,7 @@ def main(_):
                 print('new learning rate is:', current_learning_rate)
             else:
                 best_valid_loss = avg_valid_loss
-
+    print({"loss":train_loss, "perplexity":train_perplexity, "val_loss":test_loss, "val_perplexity":test_perplexity})
 
 if __name__ == "__main__":
     tf.app.run()
